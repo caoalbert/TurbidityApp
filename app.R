@@ -3,29 +3,28 @@ library(tidyverse)
 library(googlesheets4)
 library(shiny)
 
+# Access Google token
 options(
   gargle_oauth_cache = ".secrets",
   gargle_oauth_email = TRUE
 )
 
+# Name Plotting Variables
 vars<- c("hydrolab_turbidity_ntu", "sentinel_acolite_turbidity_mean_fnu","landsat_acolite_turbidity_mean_fnu","tss")
-# Initiate Connection
+
 
 ui<- fluidPage(
-  
-  
   titlePanel("Turbidity"),
-  
   sidebarPanel(selectInput("xcol", "X Variable", vars),
                selectInput("ycol", "Y Variable", vars),
                actionButton("refresh", "refresh data")),
-  
   mainPanel(plotOutput("turbidityPlot"))
 )
 
 
 server<- function(input, output){
   
+  # Use refresh button to prepare data
   dfCleaned<- eventReactive(input$refresh,{
     hydro<- read_sheet("https://docs.google.com/spreadsheets/d/18TUgYYC6s6ZbgMIdV4XYZ72J_nrS0BfzQUxzfqFy2YY/edit#gid=0")
     tss<- read_sheet("https://docs.google.com/spreadsheets/d/1-FOOyM14op9ojekoXiJ7Lx3qxvw4_lSBugtlzLVjdjU/edit#gid=0")
@@ -44,19 +43,11 @@ server<- function(input, output){
              landsat_acolite_turbidity_mean_fnu ) %>%
       left_join(tss, c("date_sample", "sites")) 
   })
-
   
-
-  
- 
-  
+  # Create the plot
   output$turbidityPlot<- renderPlot({
-    
     ggplot(dfCleaned(), aes_string(x = input$xcol, y = input$ycol))+
       geom_point(aes(color = sites))
-    
-    
-    
   })
 }
 
