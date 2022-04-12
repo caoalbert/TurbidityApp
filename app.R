@@ -3,6 +3,7 @@ library(tidyverse)
 library(googlesheets4)
 library(shiny)
 library(shinydashboard)
+library(corrplot)
 
 # Access Google token
 options(
@@ -11,18 +12,25 @@ options(
 )
 
 # Name Plotting Variables
-vars<- c("hydrolab_turbidity_ntu", "sentinel_acolite_turbidity_mean_fnu","landsat_acolite_turbidity_mean_fnu","tss")
+vars<- c("hydrolab_turbidity_ntu", 
+         "sentinel_acolite_turbidity_mean_fnu",
+         "landsat_acolite_turbidity_mean_fnu","tss", 
+         "on_site_probe_turbidity",
+         "in_lab_probe_turbidity",
+         "sentinel_gee_turbidity_mean_ntu")
 
 
 ui<- dashboardPage( 
   dashboardHeader(title = "JPL Remote Sensing Results"),
   dashboardSidebar(),
   dashboardBody(
+
     fluidPage(titlePanel("Turbidity"),
               sidebarPanel(selectInput("xcol", "X Variable", vars),
                            selectInput("ycol", "Y Variable", vars),
                            actionButton("refresh", "refresh data"),
-                           checkboxInput("noLev", "Remove Outliers", FALSE)),
+                           checkboxInput("noLev", "Remove Outliers", FALSE),
+                           plotOutput("correlationPlot")),
               mainPanel(plotOutput("turbidityPlot"),
                         verbatimTextOutput("summary"))),
   )
@@ -42,7 +50,10 @@ server<- function(input, output){
     hydro<- hydro %>%  
       mutate(hydrolab_turbidity_ntu = as.numeric(unlist(hydrolab_turbidity_ntu)),
              sentinel_acolite_turbidity_mean_fnu = as.numeric(unlist(sentinel_acolite_turbidity_mean_fnu)),
-             landsat_acolite_turbidity_mean_fnu = as.numeric(unlist(landsat_acolite_turbidity_mean_fnu)))
+             landsat_acolite_turbidity_mean_fnu = as.numeric(unlist(landsat_acolite_turbidity_mean_fnu)),
+             on_site_probe_turbidity = as.numeric(unlist(on_site_probe_turbidity)),
+             in_lab_probe_turbidity = as.numeric(unlist(in_lab_probe_turbidity)),
+             sentinel_gee_turbidity_mean_ntu = as.numeric(unlist(sentinel_gee_turbidity_mean_ntu)))
     tss<- tss %>%
       group_by(date_sample, sites)%>%
       summarise(tss = mean(tss_g_l, na.rm = T))
@@ -51,14 +62,17 @@ server<- function(input, output){
              sites,
              hydrolab_turbidity_ntu,
              sentinel_acolite_turbidity_mean_fnu,
-             landsat_acolite_turbidity_mean_fnu ) %>%
+             landsat_acolite_turbidity_mean_fnu,
+             on_site_probe_turbidity,
+             in_lab_probe_turbidity,
+             sentinel_gee_turbidity_mean_ntu) %>%
       left_join(tss, c("date_sample", "sites")) 
   })
   
 
 
   
-
+  # Build the linear model and remove outliers if selected
   f <- reactive({
     as.formula(paste(input$ycol, "~", input$xcol))
   })
@@ -81,10 +95,6 @@ server<- function(input, output){
   m2 <- reactive({
     lm(f(), data = dfCleaned2())
   })
-  
-  
-  
-  
   output$summary<- renderPrint(summary(m2()))
   
   
@@ -104,6 +114,10 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
+  })
+  
+  output$correlationPlot<- renderPlot({
+    corrplot(cor(dfCleaned2()[,-c(1,2), use = "pairwise.complete.obs"]))
   })
 }
 
