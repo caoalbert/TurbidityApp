@@ -13,13 +13,25 @@ options(
 vars<- c("hydrolab_turbidity_ntu", "sentinel_acolite_turbidity_mean_fnu","landsat_acolite_turbidity_mean_fnu","tss")
 
 
-ui<- fluidPage(
-  titlePanel("Turbidity"),
-  sidebarPanel(selectInput("xcol", "X Variable", vars),
-               selectInput("ycol", "Y Variable", vars),
-               actionButton("refresh", "refresh data")),
-  mainPanel(plotOutput("turbidityPlot"))
+ui<- dashboardPage( 
+  dashboardHeader(title = "JPL Remote Sensing Results"),
+  dashboardSidebar(),
+  dashboardBody(
+    
+    
+    fluidPage(titlePanel("Turbidity"),
+            
+              sidebarPanel(selectInput("xcol", "X Variable", vars),
+                           selectInput("ycol", "Y Variable", vars),
+                           actionButton("refresh", "refresh data")),
+              mainPanel(plotOutput("turbidityPlot"))),
+    fluidPage( tabPanel("summary", "Model Summary"))
+    )
 )
+  
+  
+  
+ 
 
 
 server<- function(input, output){
@@ -44,10 +56,29 @@ server<- function(input, output){
       left_join(tss, c("date_sample", "sites")) 
   })
   
+
   # Create the plot
   output$turbidityPlot<- renderPlot({
+   
     ggplot(dfCleaned(), aes_string(x = input$xcol, y = input$ycol))+
-      geom_point(aes(color = sites))
+      geom_point(aes(color = sites))+
+      geom_smooth(method = "lm", se = F)+
+      theme_bw()+
+      ggtitle(paste0(str_to_title(str_replace_all(input$ycol, "_", " ")),
+                     " vs. ", 
+                     str_to_title(str_replace_all(input$xcol, "_", " "))))+
+      xlab(str_to_title(str_replace_all(input$xcol, "_", " ")))+
+      ylab(str_to_title(str_replace_all(input$ycol, "_", " ")))+
+      theme(plot.title = element_text(hjust = 0.5, size = 16),
+            legend.title = element_text(size = 14),
+            axis.title = element_text(size = 14))
+  })
+  
+  
+  
+  output$summary<- renderPrint({
+    fit<- lm(input$ycol~input$xcol,df = dfCleaned())
+    summary(fit)
   })
 }
 
