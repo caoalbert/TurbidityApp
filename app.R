@@ -17,16 +17,13 @@ ui<- dashboardPage(
   dashboardHeader(title = "JPL Remote Sensing Results"),
   dashboardSidebar(),
   dashboardBody(
-    
-    
     fluidPage(titlePanel("Turbidity"),
-            
               sidebarPanel(selectInput("xcol", "X Variable", vars),
                            selectInput("ycol", "Y Variable", vars),
                            actionButton("refresh", "refresh data")),
-              mainPanel(plotOutput("turbidityPlot"))),
-    fluidPage( tabPanel("summary", "Model Summary"))
-    )
+              mainPanel(plotOutput("turbidityPlot"),
+                        verbatimTextOutput("summary"))),
+  )
 )
   
   
@@ -57,9 +54,27 @@ server<- function(input, output){
   })
   
 
+
+  
+
+  f <- reactive({
+    as.formula(paste(input$ycol, "~", input$xcol))
+  })
+  Linear_Model <- reactive({
+    lm(f(), data = dfCleaned())
+  })
+  
+  
+  
+  
+  
+  output$summary<- renderPrint(summary(Linear_Model()))
+  
+  
+  
   # Create the plot
   output$turbidityPlot<- renderPlot({
-   
+    
     ggplot(dfCleaned(), aes_string(x = input$xcol, y = input$ycol))+
       geom_point(aes(color = sites))+
       geom_smooth(method = "lm", se = F)+
@@ -72,13 +87,6 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
-  })
-  
-  
-  
-  output$summary<- renderPrint({
-    fit<- lm(input$ycol~input$xcol,df = dfCleaned())
-    summary(fit)
   })
 }
 
