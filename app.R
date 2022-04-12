@@ -22,17 +22,28 @@ vars<- c("hydrolab_turbidity_ntu",
 
 ui<- dashboardPage( 
   dashboardHeader(title = "JPL Remote Sensing Results"),
-  dashboardSidebar(),
+  dashboardSidebar(
+    sidebarMenu(id = "tabs",
+                menuItem("Turbidity", tabName = "Turbidity"),
+                menuItem("nextTab", tabName = "nextTab"))),
   dashboardBody(
-
-    fluidPage(titlePanel("Turbidity"),
-              sidebarPanel(selectInput("xcol", "X Variable", vars),
-                           selectInput("ycol", "Y Variable", vars),
-                           actionButton("refresh", "refresh data"),
-                           checkboxInput("noLev", "Remove Outliers", FALSE),
-                           plotOutput("correlationPlot")),
-              mainPanel(plotOutput("turbidityPlot"),
-                        verbatimTextOutput("summary"))),
+    tabItems(
+      tabItem(tabName = "Turbidity", h2("Turbidity"),
+              fluidPage(
+                title = "Turbidity",
+                fluidRow(
+                  column(4,
+                         sidebarPanel(selectInput("xcol", "X Variable", vars),
+                                      selectInput("ycol", "Y Variable", vars),
+                                      actionButton("refresh", "refresh data"),
+                                      checkboxInput("noLev", "Remove Outliers", FALSE),
+                                      width = 10),
+                         plotOutput("correlationPlot")),
+                  column(8,
+                         plotOutput("turbidityPlot"),
+                         verbatimTextOutput("summary"))))),
+      tabItem(tabName = "nextTab", h2("new tab"))
+    )
   )
 )
   
@@ -116,13 +127,22 @@ server<- function(input, output){
             axis.title = element_text(size = 14))
   })
   
+  # Create Correlation Plot
   output$correlationPlot<- renderPlot({
-    corrplot(cor(dfCleaned2()[,-c(1,2), use = "pairwise.complete.obs"]))
+    corrplotDf<- dfCleaned()
+    l1<- str_split(colnames(corrplotDf), "_")
+    name1<- c()
+    for(i in 1:length(l1)){
+      a<- paste0(l1[[i]][1], str_to_title(l1[[i]][2]),"")
+      name1<- c(name1,a)
+    }
+    colnames(corrplotDf)<- name1
+    
+    corrplot(cor(corrplotDf[,-c(1,2)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
   })
 }
 
 shinyApp(ui, server)
-
 
 
 
