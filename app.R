@@ -2,6 +2,7 @@
 library(tidyverse)
 library(googlesheets4)
 library(shiny)
+library(shinydashboard)
 
 # Access Google token
 options(
@@ -20,7 +21,8 @@ ui<- dashboardPage(
     fluidPage(titlePanel("Turbidity"),
               sidebarPanel(selectInput("xcol", "X Variable", vars),
                            selectInput("ycol", "Y Variable", vars),
-                           actionButton("refresh", "refresh data")),
+                           actionButton("refresh", "refresh data"),
+                           checkboxInput("noLev", "Remove Outliers", FALSE)),
               mainPanel(plotOutput("turbidityPlot"),
                         verbatimTextOutput("summary"))),
   )
@@ -60,22 +62,37 @@ server<- function(input, output){
   f <- reactive({
     as.formula(paste(input$ycol, "~", input$xcol))
   })
-  Linear_Model <- reactive({
+  m1 <- reactive({
     lm(f(), data = dfCleaned())
+  })
+  
+  dfCleaned2<- reactive({
+    if(input$noLev){
+      summary1<- summary(m1())
+      n<- summary1$df[2]+1
+      HighLeverage<- cooks.distance(m1()) > (4/n)
+      LargeResiduals<- rstudent(m1()) > 3
+      dfCleaned() %>%
+        slice(as.numeric(names(which(!HighLeverage & !LargeResiduals == T))))
+    }else{
+      dfCleaned()
+    }
+  })
+  m2 <- reactive({
+    lm(f(), data = dfCleaned2())
   })
   
   
   
   
-  
-  output$summary<- renderPrint(summary(Linear_Model()))
+  output$summary<- renderPrint(summary(m2()))
   
   
   
   # Create the plot
   output$turbidityPlot<- renderPlot({
     
-    ggplot(dfCleaned(), aes_string(x = input$xcol, y = input$ycol))+
+    ggplot(dfCleaned2(), aes_string(x = input$xcol, y = input$ycol))+
       geom_point(aes(color = sites))+
       geom_smooth(method = "lm", se = F)+
       theme_bw()+
