@@ -4,6 +4,8 @@ library(googlesheets4)
 library(shiny)
 library(shinydashboard)
 library(corrplot)
+source("loadFib.R")
+source("loadTurbidity.R")
 
 # Access Google token
 options(
@@ -12,12 +14,7 @@ options(
 )
 
 # Name Plotting Variables
-vars<- c("hydrolab_turbidity_ntu", 
-         "sentinel_acolite_turbidity_mean_fnu",
-         "landsat_acolite_turbidity_mean_fnu","tss", 
-         "on_site_probe_turbidity",
-         "in_lab_probe_turbidity",
-         "sentinel_gee_turbidity_mean_ntu")
+
 
 
 ui<- dashboardPage( 
@@ -25,7 +22,7 @@ ui<- dashboardPage(
   dashboardSidebar(
     sidebarMenu(id = "tabs",
                 menuItem("Turbidity", tabName = "Turbidity"),
-                menuItem("nextTab", tabName = "nextTab"))),
+                menuItem("ARB - E.coli", tabName = "ecoli"))),
   dashboardBody(
     tabItems(
       tabItem(tabName = "Turbidity", h2("Turbidity"),
@@ -42,46 +39,37 @@ ui<- dashboardPage(
                   column(8,
                          plotOutput("turbidityPlot"),
                          verbatimTextOutput("summary"))))),
-      tabItem(tabName = "nextTab", h2("new tab"))
+      tabItem(tabName = "ecoli", h2("Antibiotic Resistant E.Coli"),
+              fluidPage(
+                fluidRow(
+                  column(2,
+                         sidebarPanel(actionButton("refreshEcoli", "Reload E.coli"),
+                                      width = 30),
+                         tableOutput("ecoliPlot")
+                           
+                         ))))
     )
   )
 )
-  
-  
-  
- 
+
+
+
+
 
 
 server<- function(input, output){
   
   # Use refresh button to prepare data
   dfCleaned<- eventReactive(input$refresh,{
-    hydro<- read_sheet("https://docs.google.com/spreadsheets/d/18TUgYYC6s6ZbgMIdV4XYZ72J_nrS0BfzQUxzfqFy2YY/edit#gid=0")
-    tss<- read_sheet("https://docs.google.com/spreadsheets/d/1-FOOyM14op9ojekoXiJ7Lx3qxvw4_lSBugtlzLVjdjU/edit#gid=0")
-    hydro<- hydro %>%  
-      mutate(hydrolab_turbidity_ntu = as.numeric(unlist(hydrolab_turbidity_ntu)),
-             sentinel_acolite_turbidity_mean_fnu = as.numeric(unlist(sentinel_acolite_turbidity_mean_fnu)),
-             landsat_acolite_turbidity_mean_fnu = as.numeric(unlist(landsat_acolite_turbidity_mean_fnu)),
-             on_site_probe_turbidity = as.numeric(unlist(on_site_probe_turbidity)),
-             in_lab_probe_turbidity = as.numeric(unlist(in_lab_probe_turbidity)),
-             sentinel_gee_turbidity_mean_ntu = as.numeric(unlist(sentinel_gee_turbidity_mean_ntu)))
-    tss<- tss %>%
-      group_by(date_sample, sites)%>%
-      summarise(tss = mean(tss_g_l, na.rm = T))
-    hydro %>%
-      select(date_sample,
-             sites,
-             hydrolab_turbidity_ntu,
-             sentinel_acolite_turbidity_mean_fnu,
-             landsat_acolite_turbidity_mean_fnu,
-             on_site_probe_turbidity,
-             in_lab_probe_turbidity,
-             sentinel_gee_turbidity_mean_ntu) %>%
-      left_join(tss, c("date_sample", "sites")) 
+    loadTurbidity()
   })
   
-
-
+  fibdf<- eventReactive(input$refreshEcoli,{
+    loadFib()
+  })
+  
+  
+  
   
   # Build the linear model and remove outliers if selected
   f <- reactive({
@@ -140,10 +128,15 @@ server<- function(input, output){
     
     corrplot(cor(corrplotDf[,-c(1,2)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
   })
+  
+  
+  output$ecoliPlot<- renderTable(fibdf())
 }
 
 shinyApp(ui, server)
 
+
+  
 
 
 
