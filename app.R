@@ -6,6 +6,7 @@ library(shinydashboard)
 library(corrplot)
 source("loadFib.R")
 source("loadTurbidity.R")
+source("loadArg.R")
 
 # Access Google token
 options(
@@ -45,9 +46,7 @@ ui<- dashboardPage(
                   column(2,
                          sidebarPanel(actionButton("refreshEcoli", "Reload E.coli"),
                                       width = 30),
-                         tableOutput("ecoliPlot")
-                           
-                         ))))
+                         tableOutput("ecoliPlot")))))
     )
   )
 )
