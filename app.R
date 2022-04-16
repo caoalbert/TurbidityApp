@@ -23,7 +23,7 @@ ui<- dashboardPage(
   dashboardSidebar(
     sidebarMenu(id = "tabs",
                 menuItem("Turbidity", tabName = "Turbidity"),
-                menuItem("ARB - E.coli", tabName = "ecoli"))),
+                menuItem("IDEXX vs. Plate", tabName = "ecoli"))),
   dashboardBody(
     tabItems(
       tabItem(tabName = "Turbidity", h2("Turbidity"),
@@ -40,13 +40,14 @@ ui<- dashboardPage(
                   column(8,
                          plotOutput("turbidityPlot"),
                          verbatimTextOutput("summary"))))),
-      tabItem(tabName = "ecoli", h2("Antibiotic Resistant E.Coli"),
+      tabItem(tabName = "ecoli", h2("Antibiotic Resistant E.coli"),
               fluidPage(
                 fluidRow(
-                  column(2,
-                         sidebarPanel(actionButton("refreshEcoli", "Reload E.coli"),
-                                      width = 30),
-                         tableOutput("ecoliPlot")))))
+                  column(3,
+                         sidebarPanel(actionButton("refreshEcoli", "Reload E.coli - IDEXX"),
+                                      actionButton("refresharg", "Reload E.coli - Plate"),
+                                      width = 15)),
+                  column(8, plotOutput("ecoliPlot")))))
     )
   )
 )
@@ -62,9 +63,11 @@ server<- function(input, output){
   dfCleaned<- eventReactive(input$refresh,{
     loadTurbidity()
   })
-  
-  fibdf<- eventReactive(input$refreshEcoli,{
+  fib<- eventReactive(input$refreshEcoli,{
     loadFib()
+  })
+  arg<- eventReactive(input$refresharg,{
+    loadArg()
   })
   
   
@@ -129,7 +132,22 @@ server<- function(input, output){
   })
   
   
-  output$ecoliPlot<- renderTable(fibdf())
+  output$ecoliPlot<- renderPlot({
+    plate_idexx<- arg() %>% 
+      inner_join(fib(), c("sites", "date_sample"))
+    ggplot(plate_idexx, aes(x = percent_resistant, y = percent_ecoli_resistant))+
+      geom_point(aes(color = sites))+
+      xlab("Antibiotic Resistant E.coli from Plate Method (%)")+
+      ylab("Antibiotic Resistant E.coli from IDEXX Method (%)")+
+      ggtitle("Percentage of Antiobitic Resistant E.coli")+
+      theme_bw()+
+      theme(plot.title = element_text(hjust = 0.5, size = 16),
+            legend.title = element_text(size = 14),
+            axis.title = element_text(size = 14))
+    
+    
+    
+  })
 }
 
 shinyApp(ui, server)
