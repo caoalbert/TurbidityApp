@@ -15,6 +15,8 @@ options(
   gargle_oauth_email = TRUE
 )
 
+
+
 # Name Plotting Variables
 
 
@@ -41,24 +43,22 @@ ui<- dashboardPage(
                   column(8,
                          plotOutput("turbidityPlot"),
                          verbatimTextOutput("summary"))))),
-      tabItem(tabName = "ecoli", h2("Antibiotic Resistant E.coli"),
+      tabItem(tabName = "ecoli", h2("IDEXX vs. Plate Method"),
               fluidPage(
                 fluidRow(
                   column(3,
                          sidebarPanel(actionButton("refreshEcoli", "Reload E.coli - IDEXX"),
                                       actionButton("refresharg", "Reload E.coli - Plate"),
                                       width = 15)),
-                  column(8, 
-                         
-                         plotOutput("ecoliPlot"),
-                         tableOutput("conti"),
-                         verbatimTextOutput("chisq")
-                         )
-                  
-                  
-                  
-                  
-                  )))
+                         mainPanel(
+                           tabsetPanel(
+                             id = "tabset",
+                             tabPanel("Antiobiotic Resistant E.coli", 
+                                      plotOutput("ecoliPlot"),
+                                      tableOutput("conti"),
+                                      verbatimTextOutput("chisq")),
+                             tabPanel("Total E.coli", 
+                                      plotOutput("tec")))))))
     )
   )
 )
@@ -162,7 +162,8 @@ server<- function(input, output){
       inner_join(fib(), c("sites", "date_sample")) %>%
       mutate(Plate = cat_antibiotics,
              IDEXX = cat_ecoli_resistant)
-    a<- cross_cases(plate_idexx, Plate, IDEXX) %>% 
+    a<- cross_cases(plate_idexx, Plate, IDEXX)
+    a<- a %>%
       mutate_at(colnames(a)[2:4], as.integer)
     a[1:3,]
   })
@@ -174,9 +175,25 @@ server<- function(input, output){
              IDEXX = cat_ecoli_resistant)
     chisq.test(plate_idexx$Plate, plate_idexx$IDEXX)
   })
+  
+  
+  output$tec<- renderPlot({
+    plate_idexx<- arg() %>% 
+      inner_join(fib(), c("sites", "date_sample"))
+    ggplot(plate_idexx, aes(y = correction_flo_tc, x = without_ab_conc))+
+      geom_point(aes(color = sites))+
+      ylab("E.coli Concentration from IDEXX Method (%)")+
+      xlab("E.coli Concentration from Plate Method (%)")+
+      ggtitle("E.coli Concentration")+
+      theme_bw()+
+      theme(plot.title = element_text(hjust = 0.5, size = 16),
+            legend.title = element_text(size = 14),
+            axis.title = element_text(size = 14))
+  })
 }
 
 shinyApp(ui, server)
+
 
 
   
