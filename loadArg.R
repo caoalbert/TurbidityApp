@@ -3,7 +3,7 @@ loadArg<- function(){
   arg<- arg %>% 
     mutate(num_colonies = as.character(unlist(num_colonies))) %>% 
     mutate(num_colonies = gsub(">", "", num_colonies)) %>%
-    filter(num_colonies != "INPROG") %>%
+    filter(num_colonies != "INPROG" | num_colonies != "missing") %>%
     mutate(num_colonies = as.numeric((num_colonies))) %>%
     group_by(date_sample, sites, presence_antibiotics) %>%
     summarise(total_volume = sum(sample_vol_ml),
@@ -21,10 +21,9 @@ loadArg<- function(){
   arg_all<- with_ab %>% 
     left_join(without_ab, c("sites", "date_sample")) %>%
     mutate(percent_resistant = with_ab_conc/without_ab_conc) %>%
-    select(sites, date_sample, percent_resistant)
+    select(sites, date_sample, percent_resistant) %>%
+    mutate(cat_antibiotics = case_when(percent_resistant == 0 ~ "0",
+                                       percent_resistant > 0 & percent_resistant < 0.2 ~ "0<Per<20",
+                                       percent_resistant > 0.2 ~ ">20"))
   arg_all
 }
-
-
-
-  

@@ -4,6 +4,7 @@ library(googlesheets4)
 library(shiny)
 library(shinydashboard)
 library(corrplot)
+library(expss)
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
@@ -47,7 +48,17 @@ ui<- dashboardPage(
                          sidebarPanel(actionButton("refreshEcoli", "Reload E.coli - IDEXX"),
                                       actionButton("refresharg", "Reload E.coli - Plate"),
                                       width = 15)),
-                  column(8, plotOutput("ecoliPlot")))))
+                  column(8, 
+                         
+                         plotOutput("ecoliPlot"),
+                         tableOutput("conti"),
+                         verbatimTextOutput("chisq")
+                         )
+                  
+                  
+                  
+                  
+                  )))
     )
   )
 )
@@ -144,9 +155,24 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
-    
-    
-    
+  })
+  
+  output$conti<- renderTable({
+    plate_idexx<- arg() %>% 
+      inner_join(fib(), c("sites", "date_sample")) %>%
+      mutate(Plate = cat_antibiotics,
+             IDEXX = cat_ecoli_resistant)
+    a<- cross_cases(plate_idexx, Plate, IDEXX) %>% 
+      mutate_at(colnames(a)[2:4], as.integer)
+    a[1:3,]
+  })
+  
+  output$chisq<- renderPrint({
+    plate_idexx<- arg() %>% 
+      inner_join(fib(), c("sites", "date_sample")) %>%
+      mutate(Plate = cat_antibiotics,
+             IDEXX = cat_ecoli_resistant)
+    chisq.test(plate_idexx$Plate, plate_idexx$IDEXX)
   })
 }
 

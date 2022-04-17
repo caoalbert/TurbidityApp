@@ -22,8 +22,10 @@ loadFib<- function(){
     left_join(tc_esbl,  c("sites", "date_sample")) %>%
     mutate(percent_ecoli_resistant = correction_flo_tc_esbl/correction_flo_tc) %>% 
     mutate(percent_ecoli_resistant = ifelse(is.nan(percent_ecoli_resistant), 0, percent_ecoli_resistant)) %>%
-    select(sites, date_sample, percent_ecoli_resistant)
+    select(sites, date_sample, percent_ecoli_resistant) %>%
+    mutate(cat_ecoli_resistant = case_when(percent_ecoli_resistant == 0 ~ "0",
+                                       percent_ecoli_resistant > 0 & percent_ecoli_resistant < 0.2 ~ "0<Per<20",
+                                       percent_ecoli_resistant > 0.2 ~ ">20"))
   percent
 }
-
 
