@@ -28,6 +28,7 @@ ui<- dashboardPage(
                 menuItem("Turbidity", tabName = "Turbidity"),
                 menuItem("IDEXX vs. Plate", tabName = "ecoli"))),
   dashboardBody(
+    tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")),
     tabItems(
       tabItem(tabName = "Turbidity", h2("Turbidity"),
               fluidPage(
@@ -69,8 +70,7 @@ ui<- dashboardPage(
 
 
 server<- function(input, output){
-  
-  # Use refresh button to prepare data
+  # Data Import
   dfCleaned<- eventReactive(input$refresh,{
     loadTurbidity()
   })
@@ -80,18 +80,21 @@ server<- function(input, output){
   arg<- eventReactive(input$refresharg,{
     loadArg()
   })
+  plate_idexx<- reactive({
+    arg() %>% 
+      inner_join(fib(), c("sites", "date_sample")) %>%
+      mutate(Plate = cat_antibiotics,
+             IDEXX = cat_ecoli_resistant)
+  })
   
   
-  
-  
-  # Build the linear model and remove outliers if selected
+  # Turbidity - Build the linear model and remove outliers if selected
   f <- reactive({
     as.formula(paste(input$ycol, "~", input$xcol))
   })
   m1 <- reactive({
     lm(f(), data = dfCleaned())
   })
-  
   dfCleaned2<- reactive({
     if(input$noLev){
       summary1<- summary(m1())
@@ -109,9 +112,7 @@ server<- function(input, output){
   })
   output$summary<- renderPrint(summary(m2()))
   
-  
-  
-  # Create the plot
+  # Create Turbidity Plot
   output$turbidityPlot<- renderPlot({
     
     ggplot(dfCleaned2(), aes_string(x = input$xcol, y = input$ycol))+
@@ -138,11 +139,10 @@ server<- function(input, output){
       name1<- c(name1,a)
     }
     colnames(corrplotDf)<- name1
-    
     corrplot(cor(corrplotDf[,-c(1,2)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
   })
   
-  
+  # Create Antibiotic Resistant E.coli Concentration Percentage Plot
   output$ecoliPlot<- renderPlot({
     plate_idexx<- arg() %>% 
       inner_join(fib(), c("sites", "date_sample"))
@@ -157,33 +157,23 @@ server<- function(input, output){
             axis.title = element_text(size = 14))
   })
   
+  # Contingency Table for Categorical Analysis
   output$conti<- renderTable({
-    plate_idexx<- arg() %>% 
-      inner_join(fib(), c("sites", "date_sample")) %>%
-      mutate(Plate = cat_antibiotics,
-             IDEXX = cat_ecoli_resistant)
-    a<- cross_cases(plate_idexx, Plate, IDEXX)
+    a<- cross_cases(plate_idexx(), Plate, IDEXX)
     a<- a %>%
       mutate_at(colnames(a)[2:4], as.integer)
     a[1:3,]
   })
-  
   output$chisq<- renderPrint({
-    plate_idexx<- arg() %>% 
-      inner_join(fib(), c("sites", "date_sample")) %>%
-      mutate(Plate = cat_antibiotics,
-             IDEXX = cat_ecoli_resistant)
-    chisq.test(plate_idexx$Plate, plate_idexx$IDEXX)
+    chisq.test(plate_idexx()$Plate, plate_idexx()$IDEXX)
   })
   
-  
+  # Total E.coli Plot
   output$tec<- renderPlot({
-    plate_idexx<- arg() %>% 
-      inner_join(fib(), c("sites", "date_sample"))
-    ggplot(plate_idexx, aes(y = correction_flo_tc, x = without_ab_conc))+
+    ggplot(plate_idexx(), aes(y = correction_flo_tc, x = without_ab_conc))+
       geom_point(aes(color = sites))+
-      ylab("E.coli Concentration from IDEXX Method (%)")+
-      xlab("E.coli Concentration from Plate Method (%)")+
+      ylab("E.coli from IDEXX Method (CFU per 100mL)")+
+      xlab("E.coli from Plate Method (CFU per 100mL)")+
       ggtitle("E.coli Concentration")+
       theme_bw()+
       theme(plot.title = element_text(hjust = 0.5, size = 16),
