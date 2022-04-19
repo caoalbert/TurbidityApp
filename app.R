@@ -5,9 +5,11 @@ library(shiny)
 library(shinydashboard)
 library(corrplot)
 library(expss)
+library(plotly)
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
+source("clustering_analysis.R")
 
 # Access Google token
 options(
@@ -21,7 +23,9 @@ ui<- dashboardPage(
   dashboardSidebar(
     sidebarMenu(id = "tabs",
                 menuItem("Turbidity", tabName = "Turbidity"),
-                menuItem("IDEXX vs. Plate", tabName = "ecoli"))),
+                menuItem("Clutering Analysis", tabName = "clustering"),
+                menuItem("IDEXX vs. Plate", tabName = "ecoli"),
+                menuItem("Coliform by Site", tabName = "bySite"))),
   dashboardBody(
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")),
     tabItems(
@@ -39,6 +43,15 @@ ui<- dashboardPage(
                   column(8,
                          plotlyOutput("turbidityPlot", height = "500px"),
                          verbatimTextOutput("summary"))))),
+      tabItem(tabName = "clustering",h2("Clustering Analysis on Sentinel vs. On Site Prob"),
+              fluidPage(
+                fluidRow(
+                  column(6,
+                         plotOutput("selk"),
+                         verbatimTextOutput("regre")),
+                  column(6,
+                         plotOutput("results"),
+                         plotOutput("clusterlm"))))),
       tabItem(tabName = "ecoli", h2("IDEXX vs. Plate Method"),
               fluidPage(
                 fluidRow(
@@ -57,7 +70,11 @@ ui<- dashboardPage(
                                       verbatimTextOutput("chisq")),
                              tabPanel("Total E.coli", 
                                       plotOutput("tec"),
-                                      verbatimTextOutput("teclm")))))))
+                                      verbatimTextOutput("teclm"))))))),
+      tabItem(tabName = "bySite", h2("Comparing Coliform Concentrtaion by Sites"),
+              fluidPage(
+                mainPanel(plotOutput("flo"),
+                          plotOutput("yel"))))
     )
   )
 )
@@ -107,10 +124,9 @@ server<- function(input, output){
   
   # Create Turbidity Plot
   output$turbidityPlot<- renderPlotly({
-    
     ggplot(dfCleaned2(), aes_string(x = input$xcol, y = input$ycol))+
       geom_point(aes(color = sites, text = date_sample), size =0.75)+
-      geom_smooth(method = "lm", se = F)+
+      geom_smooth(method = "lm", se = F, size = 0.5)+
       scale_x_continuous(limits = c(0, NA))+
       theme_bw()+
       ggtitle(paste0(str_to_title(str_replace_all(input$ycol, "_", " ")),
@@ -135,6 +151,24 @@ server<- function(input, output){
     }
     colnames(corrplotDf)<- name1
     corrplot(cor(corrplotDf[,-c(1,2)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
+  })
+  
+  
+  output$selk<- renderPlot({
+    
+    output1
+    
+  })
+  
+  output$results<- renderPlot({
+    output2
+  })
+  
+  output$regre<- renderPrint({
+    summary(cluster_model)
+  })
+  output$clusterlm<- renderPlot({
+    output3
   })
   
   # Create Antibiotic Resistant E.coli Concentration Percentage Plot
@@ -183,6 +217,47 @@ server<- function(input, output){
     m1<- lm(data=plate_idexx(), correction_flo_tc~without_ab_conc)
     summary(m1)
   })
+  
+  # Tab3 Site Comparison
+  output$flo<- renderPlot({
+    df_flo<- fib() %>% 
+      group_by(sites) %>% 
+      summarise(mean_tcesbl = mean(correction_flo_tc_esbl),
+                mean_flotc = mean(correction_flo_tc))
+    a<- as.data.frame(cbind(df_flo$sites, df_flo$mean_flotc, rep("Flo_TC", nrow(df_flo))))
+    b<- as.data.frame(cbind(df_flo$sites, df_flo$mean_tcesbl, rep("Flo_TC_ESBL", nrow(df_flo))))
+    df_flo2<- rbind(a,b)
+    colnames(df_flo2)<- c("Sites", "Coliform", "Type")
+    df_flo2<- df_flo2 %>%
+      mutate(Coliform = as.numeric(Coliform))
+    ggplot(df_flo2, aes(fill = Type, y = Coliform, x = Sites))+
+      geom_bar(position = "stack", stat = "identity")+
+      theme_bw()+
+      ggtitle("Mean E.coli Concentration by Sites")+
+      theme(plot.title = element_text(hjust = 0.5, size = 16),
+            legend.title = element_text(size = 14),
+            axis.title = element_text(size = 14))
+  })
+  output$yel<- renderPlot({
+    df_yel<- fib() %>% 
+      group_by(sites) %>% 
+      summarise(mean_yel_tcesbl = mean(correction_yel_tc_esbl),
+                mean_yel_tc = mean(correction_yel_tc))
+    a<- as.data.frame(cbind(df_yel$sites, df_yel$mean_yel_tc, rep("yel_TC", nrow(df_yel))))
+    b<- as.data.frame(cbind(df_yel$sites, df_yel$mean_yel_tcesbl, rep("yel_TC_ESBL", nrow(df_yel))))
+    df_yel2<- rbind(a,b)
+    colnames(df_yel2)<- c("Sites", "Coliform", "Type")
+    df_yel2<- df_yel2 %>%
+      mutate(Coliform = as.numeric(Coliform))
+    ggplot(df_yel2, aes(fill = Type, y = Coliform, x = Sites))+
+      geom_bar(position = "stack", stat = "identity")+
+      theme_bw()+
+      ggtitle("Mean Coliform Concentration by Sites")+
+      theme(plot.title = element_text(hjust = 0.5, size = 16),
+            legend.title = element_text(size = 14),
+            axis.title = element_text(size = 14))
+  })
+  
 }
 
 shinyApp(ui, server)
