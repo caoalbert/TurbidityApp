@@ -15,12 +15,7 @@ options(
   gargle_oauth_email = TRUE
 )
 
-
-
 # Name Plotting Variables
-
-
-
 ui<- dashboardPage( 
   dashboardHeader(title = "JPL Remote Sensing Results"),
   dashboardSidebar(
@@ -56,17 +51,16 @@ ui<- dashboardPage(
                              id = "tabset",
                              tabPanel("Antiobiotic Resistant E.coli", 
                                       plotOutput("ecoliPlot"),
+                                      verbatimTextOutput("ecolilm")),
+                             tabPanel("Antiobiotic Resistant E.coli - categorical",
                                       tableOutput("conti"),
                                       verbatimTextOutput("chisq")),
                              tabPanel("Total E.coli", 
-                                      plotOutput("tec")))))))
+                                      plotOutput("tec"),
+                                      verbatimTextOutput("teclm")))))))
     )
   )
 )
-
-
-
-
 
 
 server<- function(input, output){
@@ -86,7 +80,6 @@ server<- function(input, output){
       mutate(Plate = cat_antibiotics,
              IDEXX = cat_ecoli_resistant)
   })
-  
   
   # Turbidity - Build the linear model and remove outliers if selected
   f <- reactive({
@@ -116,7 +109,7 @@ server<- function(input, output){
   output$turbidityPlot<- renderPlot({
     
     ggplot(dfCleaned2(), aes_string(x = input$xcol, y = input$ycol))+
-      geom_point(aes(color = sites))+
+      geom_point_interactive(aes(color = sites,))+
       geom_smooth(method = "lm", se = F)+
       theme_bw()+
       ggtitle(paste0(str_to_title(str_replace_all(input$ycol, "_", " ")),
@@ -144,10 +137,9 @@ server<- function(input, output){
   
   # Create Antibiotic Resistant E.coli Concentration Percentage Plot
   output$ecoliPlot<- renderPlot({
-    plate_idexx<- arg() %>% 
-      inner_join(fib(), c("sites", "date_sample"))
-    ggplot(plate_idexx, aes(x = percent_resistant, y = percent_ecoli_resistant))+
+    ggplot(plate_idexx(), aes(x = percent_resistant, y = percent_ecoli_resistant))+
       geom_point(aes(color = sites))+
+      geom_smooth(method = "lm", se = F)+
       xlab("Antibiotic Resistant E.coli from Plate Method (%)")+
       ylab("Antibiotic Resistant E.coli from IDEXX Method (%)")+
       ggtitle("Percentage of Antiobitic Resistant E.coli")+
@@ -155,6 +147,10 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
+  })
+  output$ecolilm<- renderPrint({
+    m1<- lm(data = plate_idexx(), percent_ecoli_resistant~percent_resistant)
+    summary(m1)
   })
   
   # Contingency Table for Categorical Analysis
@@ -172,6 +168,7 @@ server<- function(input, output){
   output$tec<- renderPlot({
     ggplot(plate_idexx(), aes(y = correction_flo_tc, x = without_ab_conc))+
       geom_point(aes(color = sites))+
+      geom_smooth(method = "lm", se = F)+
       ylab("E.coli from IDEXX Method (CFU per 100mL)")+
       xlab("E.coli from Plate Method (CFU per 100mL)")+
       ggtitle("E.coli Concentration")+
@@ -179,6 +176,10 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
+  })
+  output$teclm<- renderPrint({
+    m1<- lm(data=plate_idexx(), correction_flo_tc~without_ab_conc)
+    summary(m1)
   })
 }
 
