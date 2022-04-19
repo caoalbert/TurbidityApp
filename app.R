@@ -37,7 +37,7 @@ ui<- dashboardPage(
                                       width = 10),
                          plotOutput("correlationPlot")),
                   column(8,
-                         plotOutput("turbidityPlot"),
+                         plotlyOutput("turbidityPlot", height = "500px"),
                          verbatimTextOutput("summary"))))),
       tabItem(tabName = "ecoli", h2("IDEXX vs. Plate Method"),
               fluidPage(
@@ -106,20 +106,22 @@ server<- function(input, output){
   output$summary<- renderPrint(summary(m2()))
   
   # Create Turbidity Plot
-  output$turbidityPlot<- renderPlot({
+  output$turbidityPlot<- renderPlotly({
     
     ggplot(dfCleaned2(), aes_string(x = input$xcol, y = input$ycol))+
-      geom_point_interactive(aes(color = sites,))+
+      geom_point(aes(color = sites, text = date_sample), size =0.75)+
       geom_smooth(method = "lm", se = F)+
+      scale_x_continuous(limits = c(0, NA))+
       theme_bw()+
       ggtitle(paste0(str_to_title(str_replace_all(input$ycol, "_", " ")),
                      " vs. ", 
                      str_to_title(str_replace_all(input$xcol, "_", " "))))+
       xlab(str_to_title(str_replace_all(input$xcol, "_", " ")))+
       ylab(str_to_title(str_replace_all(input$ycol, "_", " ")))+
-      theme(plot.title = element_text(hjust = 0.5, size = 16),
-            legend.title = element_text(size = 14),
-            axis.title = element_text(size = 14))
+      theme(plot.title = element_text(hjust = 0.5, size = 12),
+            legend.title = element_text(size = 10),
+            axis.title = element_text(size = 10),
+            legend.position = "none")
   })
   
   # Create Correlation Plot
