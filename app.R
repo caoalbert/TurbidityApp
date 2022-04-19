@@ -6,16 +6,19 @@ library(shinydashboard)
 library(corrplot)
 library(expss)
 library(plotly)
+library(factoextra)
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
-source("clustering_analysis.R")
+
+
 
 # Access Google token
 options(
   gargle_oauth_cache = ".secrets",
   gargle_oauth_email = TRUE
 )
+source("clustering_analysis.R")
 
 # Name Plotting Variables
 ui<- dashboardPage( 
@@ -42,7 +45,8 @@ ui<- dashboardPage(
                          plotOutput("correlationPlot")),
                   column(8,
                          plotlyOutput("turbidityPlot", height = "500px"),
-                         verbatimTextOutput("summary"))))),
+                         verbatimTextOutput("summary"),
+                         plotOutput("res"))))),
       tabItem(tabName = "clustering",h2("Clustering Analysis on Sentinel vs. On Site Prob"),
               fluidPage(
                 fluidRow(
@@ -121,6 +125,10 @@ server<- function(input, output){
     lm(f(), data = dfCleaned2())
   })
   output$summary<- renderPrint(summary(m2()))
+  output$res<- renderPlot({
+    plot(fitted(m2()), resid(m2()), main = "Residual vs. Fitted")
+    abline(h=0)
+  })
   
   # Create Turbidity Plot
   output$turbidityPlot<- renderPlotly({
@@ -205,7 +213,7 @@ server<- function(input, output){
     ggplot(plate_idexx(), aes(y = correction_flo_tc, x = without_ab_conc))+
       geom_point(aes(color = sites))+
       geom_smooth(method = "lm", se = F)+
-      ylab("E.coli from IDEXX Method (CFU per 100mL)")+
+      ylab("E.coli from IDEXX Method (MPN per 100mL)")+
       xlab("E.coli from Plate Method (CFU per 100mL)")+
       ggtitle("E.coli Concentration")+
       theme_bw()+

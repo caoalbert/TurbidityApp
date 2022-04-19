@@ -1,4 +1,4 @@
-
+library(factoextra)
 df<- loadTurbidity()
 df2<- df %>% 
   select(on_site_probe_turbidity, sentinel_acolite_turbidity_mean_fnu)
