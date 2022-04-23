@@ -25,28 +25,34 @@ ui<- dashboardPage(
   dashboardHeader(title = "JPL Remote Sensing Results"),
   dashboardSidebar(
     sidebarMenu(id = "tabs",
-                menuItem("Turbidity", tabName = "Turbidity"),
+                menuItem("Regression Analysis", tabName = "Turbidity"),
                 menuItem("Clutering Analysis", tabName = "clustering"),
                 menuItem("IDEXX vs. Plate", tabName = "ecoli"),
                 menuItem("Coliform by Site", tabName = "bySite"))),
   dashboardBody(
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")),
     tabItems(
-      tabItem(tabName = "Turbidity", h2("Turbidity"),
+      tabItem(tabName = "Turbidity", h2("Regression on all features"),
               fluidPage(
                 title = "Turbidity",
                 fluidRow(
                   column(4,
                          sidebarPanel(selectInput("xcol", "X Variable", vars),
                                       selectInput("ycol", "Y Variable", vars),
-                                      actionButton("refresh", "refresh data"),
+                                      actionButton("refreshEcoli", "Reload E.coli - IDEXX"),
+                                      actionButton("refresharg", "Reload E.coli - Plate"),
+                                      actionButton("refresh", "Reload Turbidty & TSS"),
                                       checkboxInput("noLev", "Remove Outliers", FALSE),
-                                      width = 10),
-                         plotOutput("correlationPlot")),
-                  column(8,
-                         plotlyOutput("turbidityPlot", height = "500px"),
-                         verbatimTextOutput("summary"),
-                         plotOutput("res"))))),
+                                      width = 10)),
+                  
+                  mainPanel(
+                    tabsetPanel(
+                      tabPanel("Correlation Plot",
+                                plotOutput("correlationPlot",height = "800px", width = "850px")),
+                    tabPanel("Regression Output",
+                              plotlyOutput("turbidityPlot", height = "500px"),
+                              verbatimTextOutput("summary"),
+                              plotOutput("residual"))))))),
       tabItem(tabName = "clustering",h2("Clustering Analysis on Sentinel vs. On Site Prob"),
               fluidPage(
                 fluidRow(
@@ -59,22 +65,17 @@ ui<- dashboardPage(
       tabItem(tabName = "ecoli", h2("IDEXX vs. Plate Method"),
               fluidPage(
                 fluidRow(
-                  column(3,
-                         sidebarPanel(actionButton("refreshEcoli", "Reload E.coli - IDEXX"),
-                                      actionButton("refresharg", "Reload E.coli - Plate"),
-                                      width = 15)),
-                         mainPanel(
-                           tabsetPanel(
-                             id = "tabset",
-                             tabPanel("Antiobiotic Resistant E.coli", 
-                                      plotOutput("ecoliPlot"),
-                                      verbatimTextOutput("ecolilm")),
-                             tabPanel("Antiobiotic Resistant E.coli - categorical",
-                                      tableOutput("conti"),
-                                      verbatimTextOutput("chisq")),
-                             tabPanel("Total E.coli", 
-                                      plotOutput("tec"),
-                                      verbatimTextOutput("teclm"))))))),
+                  mainPanel(
+                    tabsetPanel(id = "tabset",
+                                tabPanel("Antiobiotic Resistant E.coli", 
+                                         plotOutput("ecoliPlot"),
+                                         verbatimTextOutput("ecolilm")),
+                                tabPanel("Antiobiotic Resistant E.coli - categorical",
+                                         tableOutput("conti"),
+                                         verbatimTextOutput("chisq")),
+                                tabPanel("Total E.coli", 
+                                         plotOutput("tec"),
+                                         verbatimTextOutput("teclm"))))))),
       tabItem(tabName = "bySite", h2("Comparing Coliform Concentration by Sites"),
               fluidPage(
                 mainPanel(plotOutput("flo"),
@@ -86,9 +87,7 @@ ui<- dashboardPage(
 
 server<- function(input, output){
   # Data Import
-  dfCleaned<- eventReactive(input$refresh,{
-    loadTurbidity()
-  })
+  
   fib<- eventReactive(input$refreshEcoli,{
     loadFib()
   })
@@ -100,6 +99,17 @@ server<- function(input, output){
       inner_join(fib(), c("sites", "date_sample")) %>%
       mutate(Plate = cat_antibiotics,
              IDEXX = cat_ecoli_resistant)
+  })
+  dfCleaned<- eventReactive(input$refresh,{
+    to_join<- plate_idexx() %>%
+      select(sites, 
+             date_sample,
+             percent_resistant,
+             without_ab_conc) %>%
+      rename(plate_method_abrp = percent_resistant,
+             plate_method_tc = without_ab_conc)
+    loadTurbidity() %>% 
+      left_join(to_join, c("sites", "date_sample"))
   })
   
   # Turbidity - Build the linear model and remove outliers if selected
@@ -125,7 +135,7 @@ server<- function(input, output){
     lm(f(), data = dfCleaned2())
   })
   output$summary<- renderPrint(summary(m2()))
-  output$res<- renderPlot({
+  output$residual<- renderPlot({
     plot(fitted(m2()), resid(m2()), main = "Residual vs. Fitted")
     abline(h=0)
   })
@@ -154,11 +164,11 @@ server<- function(input, output){
     l1<- str_split(colnames(corrplotDf), "_")
     name1<- c()
     for(i in 1:length(l1)){
-      a<- paste0(l1[[i]][1], str_to_title(l1[[i]][2]),"")
+      a<- paste0(l1[[i]][1], str_to_title(l1[[i]][2]),str_to_title(l1[[i]][3]),"")
       name1<- c(name1,a)
     }
     colnames(corrplotDf)<- name1
-    corrplot(cor(corrplotDf[,-c(1,2,3)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
+    corrplot(cor(corrplotDf[,-c(1,2,3)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8, tl.col = "black", tl.srt = 45)
   })
   
   

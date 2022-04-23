@@ -29,7 +29,9 @@ vars<- c("hydrolab_turbidity_ntu",
          "hydrolab_temp",
          "hydrolab_spec_conductance_mS_cm",
          "hydrolab_dissolved_oxygen_percent",
-         "light_absorbance_645")
+         "light_absorbance_645",
+         "plate_method_abrp",
+         "plate_method_tc")
 
 
 
