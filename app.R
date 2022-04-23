@@ -10,7 +10,7 @@ library(factoextra)
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
-
+source("clustering_analysis.R")
 
 
 # Access Google token
@@ -18,7 +18,7 @@ options(
   gargle_oauth_cache = ".secrets",
   gargle_oauth_email = TRUE
 )
-source("clustering_analysis.R")
+
 
 # Name Plotting Variables
 ui<- dashboardPage( 
@@ -51,11 +51,11 @@ ui<- dashboardPage(
               fluidPage(
                 fluidRow(
                   column(6,
-                         plotOutput("selk"),
-                         verbatimTextOutput("regre")),
+                         plotOutput("plot_select_k"),
+                         verbatimTextOutput("regression")),
                   column(6,
-                         plotOutput("results"),
-                         plotOutput("clusterlm"))))),
+                         plotOutput("plot_clusters"),
+                         plotOutput("plot_largest_cluster_regression"))))),
       tabItem(tabName = "ecoli", h2("IDEXX vs. Plate Method"),
               fluidPage(
                 fluidRow(
@@ -75,7 +75,7 @@ ui<- dashboardPage(
                              tabPanel("Total E.coli", 
                                       plotOutput("tec"),
                                       verbatimTextOutput("teclm"))))))),
-      tabItem(tabName = "bySite", h2("Comparing Coliform Concentrtaion by Sites"),
+      tabItem(tabName = "bySite", h2("Comparing Coliform Concentration by Sites"),
               fluidPage(
                 mainPanel(plotOutput("flo"),
                           plotOutput("yel"))))
@@ -162,21 +162,19 @@ server<- function(input, output){
   })
   
   
-  output$selk<- renderPlot({
-    
-    output1
-    
+  output$plot_select_k<- renderPlot({
+    plot_select_k
   })
   
-  output$results<- renderPlot({
-    output2
+  output$plot_clusters<- renderPlot({
+    plot_clusters
   })
   
-  output$regre<- renderPrint({
-    summary(cluster_model)
+  output$regression<- renderPrint({
+    summary(lm_largest_cluster)
   })
-  output$clusterlm<- renderPlot({
-    output3
+  output$plot_largest_cluster_regression<- renderPlot({
+    plot_largest_cluster_regression
   })
   
   # Create Antibiotic Resistant E.coli Concentration Percentage Plot
@@ -201,7 +199,7 @@ server<- function(input, output){
   output$conti<- renderTable({
     a<- cross_cases(plate_idexx(), Plate, IDEXX)
     a<- a %>%
-      mutate_at(colnames(a)[2:4], as.integer)
+      mutate_at(colnames(a)[2:3], as.integer)
     a[1:3,]
   })
   output$chisq<- renderPrint({

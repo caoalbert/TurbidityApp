@@ -1,28 +1,39 @@
 library(factoextra)
-df<- loadTurbidity()
-df2<- df %>% 
-  select(on_site_probe_turbidity, sentinel_acolite_turbidity_mean_fnu)
-df2<- na.omit(df2)
-df2<- scale(df2)
+options(
+  gargle_oauth_cache = ".secrets",
+  gargle_oauth_email = TRUE
+)
+df_cluster_analysis<- loadTurbidity() %>% 
+  select(on_site_probe_turbidity, sentinel_acolite_turbidity_mean_fnu) %>%
+  na.omit() %>% 
+  scale() %>%
+  as.data.frame()
 
-output1<- fviz_nbclust(df2, kmeans, method = "wss")
 
-a<- kmeans(df2, 3, 25)
-
-output2<- fviz_cluster(a, df2)+
+plot_select_k<- fviz_nbclust(df_cluster_analysis, kmeans, method = "wss")
+kmeans_m1<- kmeans(df_cluster_analysis, 3, 25)
+plot_clusters<- fviz_cluster(kmeans_m1, df_cluster_analysis)+
   theme_bw()+
   ggtitle("Clusters")
 
-df3<- as.data.frame(cbind(df2, a$cluster))
-colnames(df3)[3]<- "cluster"
-df4<- df3 %>%
+df_cluster_analysis<- cbind(df_cluster_analysis, kmeans_m1$cluster) %>%
+  rename("cluster" = `kmeans_m1$cluster`) %>%
   dplyr::filter(cluster == 3)
-cluster_model<- lm(df4, formula = sentinel_acolite_turbidity_mean_fnu~on_site_probe_turbidity)
+
+
+lm_largest_cluster<- lm(df_cluster_analysis, formula = sentinel_acolite_turbidity_mean_fnu~on_site_probe_turbidity)
 
 
 
-output3<- ggplot(df4, aes(x = sentinel_acolite_turbidity_mean_fnu, y = on_site_probe_turbidity))+
+plot_largest_cluster_regression<- ggplot(lm_largest_cluster, aes(x = sentinel_acolite_turbidity_mean_fnu, y = on_site_probe_turbidity))+
   geom_point()+
   theme_bw()+
   ggtitle("Regression in the Largest Cluster")+
   geom_smooth(method = "lm", se = F)
+
+
+
+
+
+
+

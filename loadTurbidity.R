@@ -7,7 +7,10 @@ loadTurbidity<- function(){
            landsat_acolite_turbidity_mean_fnu = as.numeric(unlist(landsat_acolite_turbidity_mean_fnu)),
            on_site_probe_turbidity = as.numeric(unlist(on_site_probe_turbidity)),
            in_lab_probe_turbidity = as.numeric(unlist(in_lab_probe_turbidity)),
-           sentinel_gee_turbidity_mean_ntu = as.numeric(unlist(sentinel_gee_turbidity_mean_ntu)))
+           sentinel_gee_turbidity_mean_ntu = as.numeric(unlist(sentinel_gee_turbidity_mean_ntu)),
+           phosphrous = as.numeric(unlist(p)),
+           nitrite = as.numeric(unlist(no3)),
+           ammonia = as.numeric(unlist(nh3)))
   tss<- tss %>%
     group_by(date_sample, sites)%>%
     summarise(tss = mean(tss_g_l, na.rm = T))
@@ -19,7 +22,10 @@ loadTurbidity<- function(){
            landsat_acolite_turbidity_mean_fnu,
            on_site_probe_turbidity,
            in_lab_probe_turbidity,
-           sentinel_gee_turbidity_mean_ntu) %>%
+           sentinel_gee_turbidity_mean_ntu,
+           phosphrous,
+           nitrite,
+           ammonia) %>%
     left_join(tss, c("date_sample", "sites")) 
 }
 
@@ -28,4 +34,17 @@ vars<- c("hydrolab_turbidity_ntu",
          "landsat_acolite_turbidity_mean_fnu","tss", 
          "on_site_probe_turbidity",
          "in_lab_probe_turbidity",
-         "sentinel_gee_turbidity_mean_ntu")
+         "sentinel_gee_turbidity_mean_ntu",
+         "phosphrous",
+         "nitrite",
+         "ammonia")
+
+
+
+
+
+
+
+
+
+
