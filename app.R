@@ -158,7 +158,7 @@ server<- function(input, output){
       name1<- c(name1,a)
     }
     colnames(corrplotDf)<- name1
-    corrplot(cor(corrplotDf[,-c(1,2)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
+    corrplot(cor(corrplotDf[,-c(1,2,3)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8)
   })
   
   
