@@ -7,18 +7,18 @@ library(corrplot)
 library(expss)
 library(plotly)
 library(factoextra)
+library(leaflet)
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
 source("clustering_analysis.R")
-
+load("coords.RData")
 
 # Access Google token
 options(
   gargle_oauth_cache = ".secrets",
   gargle_oauth_email = TRUE
 )
-
 
 # Name Plotting Variables
 ui<- dashboardPage( 
@@ -86,12 +86,14 @@ ui<- dashboardPage(
                                          verbatimTextOutput("teclm"))))))),
       tabItem(tabName = "bySite", h2("Comparing E.coli Concentration by Sites"),
               fluidPage(
-                mainPanel(plotlyOutput("flo"),
+                mainPanel(leafletOutput("sitemap", width = 600, height = 400),
+                          br(),
+                          plotlyOutput("flo"),
+                          br(),
                           plotlyOutput("yel"))))
     )
   )
 )
-
 
 server<- function(input, output){
   # Data Import
@@ -198,19 +200,17 @@ server<- function(input, output){
                     ammonia_cat[ammonia < 0]<- "negative"
                     ammonia_cat[ammonia > 0]<- "positive"
                     phosphrous_cat<- NA
-                    phosphrous_cat[phosphrous < 0.5]<- "low"
-                    phosphrous_cat[phosphrous > 0.5]<- "high"
+                    phosphrous_cat[phosphrous <= 0.2]<- "low"
+                    phosphrous_cat[phosphrous > 0.2]<- "high"
                     plate_method_tc_cat<- NA
                     plate_method_tc_cat[plate_method_tc <= 100]<- "low"
                     plate_method_tc_cat[plate_method_tc > 100]<- "high"
                     plate_method_abrp_cat<- NA
                     plate_method_abrp_cat[plate_method_abrp == 0]<- "zero"
                     plate_method_abrp_cat[plate_method_abrp > 0]<- "non-zero"})
-    m1<- aov(on_site_probe_turbidity ~ phosphrous_cat+as.factor(nitrite)+ammonia_cat+plate_method_tc_cat+plate_method_abrp_cat, data = df_cat)
+    #plate_method_abrp_cat ignored because not enough sample
+    m1<- aov(on_site_probe_turbidity ~ phosphrous_cat+as.factor(nitrite)+ammonia_cat+plate_method_tc_cat, data = df_cat)
     summary(m1)
-    
-    
-    
   })
   
   # IDEXX vs. Plate Method
@@ -265,20 +265,27 @@ server<- function(input, output){
       geom_boxplot()+
       theme_bw()+
       labs(title = "Percent Antibiotic Resistant E.coli by Site")+
-      theme(plot.title = element_text(hjust = 0.5, size = 16),
-            legend.title = element_text(size = 14),
-            axis.title = element_text(size = 14))
+      theme(plot.title = element_text(hjust = 0.5, size = 12),
+            legend.title = element_text(size = 10),
+            axis.title = element_text(size = 10),
+            legend.position = "none")
   })
   output$yel<- renderPlotly({
     ggplot(plate_idexx(), aes(y = without_ab_conc, x = sites))+
       geom_boxplot()+
       theme_bw()+
       ggtitle("E.coli Concentration by Site")+
-      theme(plot.title = element_text(hjust = 0.5, size = 16),
-            legend.title = element_text(size = 14),
-            axis.title = element_text(size = 14))
+      theme(plot.title = element_text(hjust = 0.5, size = 12),
+            legend.title = element_text(size = 10),
+            axis.title = element_text(size = 10),
+            legend.position = "none")
   })
-  
+  output$sitemap<- renderLeaflet({
+    leaflet(coords) %>% 
+      addProviderTiles("CartoDB.Positron") %>% 
+      addMarkers(lng = ~Long, lat = ~Lat, label = ~Sites, icon = list(iconUrl = 'https://icons.iconarchive.com/icons/icons8/ios7/512/Travel-Beach-icon.png',iconSize = c(24, 24)))
+    
+  })
 }
 
 shinyApp(ui, server)
