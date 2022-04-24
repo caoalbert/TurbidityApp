@@ -25,7 +25,9 @@ loadFib<- function(){
            correction_flo_tc_esbl, correction_yel_tc, correction_yel_tc_esbl) %>%
     mutate(cat_ecoli_resistant = case_when(percent_ecoli_resistant == 0 ~ "0",
                                        percent_ecoli_resistant > 0 & percent_ecoli_resistant < 0.2 ~ "0<Per<20",
-                                       percent_ecoli_resistant > 0.2 ~ ">20"))
+                                       percent_ecoli_resistant > 0.2 ~ ">20")) %>%
+    # Filter out the 3/14/22 data
+    filter(date_sample != as.POSIXct('2022-03-14', tz = "UTC"))
   percent
 }
 

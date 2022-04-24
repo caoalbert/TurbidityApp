@@ -27,6 +27,7 @@ ui<- dashboardPage(
     sidebarMenu(id = "tabs",
                 menuItem("Regression Analysis", tabName = "Turbidity"),
                 menuItem("Clutering Analysis", tabName = "clustering"),
+                menuItem("ANOVA", tabName = "anova"),
                 menuItem("IDEXX vs. Plate", tabName = "ecoli"),
                 menuItem("Coliform by Site", tabName = "bySite"))),
   dashboardBody(
@@ -53,6 +54,13 @@ ui<- dashboardPage(
                               plotlyOutput("turbidityPlot", height = "500px"),
                               verbatimTextOutput("summary"),
                               plotOutput("residual"))))))),
+      tabItem(tabName = "anova", h2("ANOVA for on site probe turbidity"),
+              fluidPage(
+                mainPanel(
+                  verbatimTextOutput("anova_output")
+                )
+              )),
+      
       tabItem(tabName = "clustering",h2("Clustering Analysis on Sentinel vs. On Site Prob"),
               fluidPage(
                 fluidRow(
@@ -87,7 +95,6 @@ ui<- dashboardPage(
 
 server<- function(input, output){
   # Data Import
-  
   fib<- eventReactive(input$refreshEcoli,{
     loadFib()
   })
@@ -112,7 +119,8 @@ server<- function(input, output){
       left_join(to_join, c("sites", "date_sample"))
   })
   
-  # Turbidity - Build the linear model and remove outliers if selected
+  # Regression Analysis Tab
+    # Model Construction/Removal of Outliers
   f <- reactive({
     as.formula(paste(input$ycol, "~", input$xcol))
   })
@@ -139,8 +147,7 @@ server<- function(input, output){
     plot(fitted(m2()), resid(m2()), main = "Residual vs. Fitted")
     abline(h=0)
   })
-  
-  # Create Turbidity Plot
+    # Create Turbidity Plot
   output$turbidityPlot<- renderPlotly({
     ggplot(dfCleaned2(), aes_string(x = input$xcol, y = input$ycol))+
       geom_point(aes(color = sites, text = date_sample), size =0.75)+
@@ -157,8 +164,7 @@ server<- function(input, output){
             axis.title = element_text(size = 10),
             legend.position = "none")
   })
-  
-  # Create Correlation Plot
+    # Create Correlation Plot
   output$correlationPlot<- renderPlot({
     corrplotDf<- dfCleaned()
     l1<- str_split(colnames(corrplotDf), "_")
@@ -171,15 +177,13 @@ server<- function(input, output){
     corrplot(cor(corrplotDf[,-c(1,2,3)], use = "pairwise.complete.obs"), method = "number", type = "lower", tl.cex = 0.8, tl.col = "black", tl.srt = 45)
   })
   
-  
+  # Clustering Analysis Tab
   output$plot_select_k<- renderPlot({
     plot_select_k
   })
-  
   output$plot_clusters<- renderPlot({
     plot_clusters
   })
-  
   output$regression<- renderPrint({
     summary(lm_largest_cluster)
   })
@@ -187,7 +191,30 @@ server<- function(input, output){
     plot_largest_cluster_regression
   })
   
-  # Create Antibiotic Resistant E.coli Concentration Percentage Plot
+  # ANOVA Tab
+  output$anova_output<- renderPrint({
+    df_cat<- within(dfCleaned(),{
+                    ammonia_cat<- NA
+                    ammonia_cat[ammonia < 0]<- "negative"
+                    ammonia_cat[ammonia > 0]<- "positive"
+                    phosphrous_cat<- NA
+                    phosphrous_cat[phosphrous < 0.5]<- "low"
+                    phosphrous_cat[phosphrous > 0.5]<- "high"
+                    plate_method_tc_cat<- NA
+                    plate_method_tc_cat[plate_method_tc <= 100]<- "low"
+                    plate_method_tc_cat[plate_method_tc > 100]<- "high"
+                    plate_method_abrp_cat<- NA
+                    plate_method_abrp_cat[plate_method_abrp == 0]<- "zero"
+                    plate_method_abrp_cat[plate_method_abrp > 0]<- "non-zero"})
+    m1<- aov(on_site_probe_turbidity ~ phosphrous_cat+as.factor(nitrite)+ammonia_cat+plate_method_tc_cat+plate_method_abrp_cat, data = df_cat)
+    summary(m1)
+    
+    
+    
+  })
+  
+  # IDEXX vs. Plate Method
+    # Create Antibiotic Resistant E.coli Concentration Percentage Plot
   output$ecoliPlot<- renderPlot({
     ggplot(plate_idexx(), aes(x = percent_resistant, y = percent_ecoli_resistant))+
       geom_point(aes(color = sites))+
@@ -204,8 +231,7 @@ server<- function(input, output){
     m1<- lm(data = plate_idexx(), percent_ecoli_resistant~percent_resistant)
     summary(m1)
   })
-  
-  # Contingency Table for Categorical Analysis
+    # Contingency Table for Categorical Analysis
   output$conti<- renderTable({
     a<- cross_cases(plate_idexx(), Plate, IDEXX)
     a<- a %>%
@@ -215,8 +241,7 @@ server<- function(input, output){
   output$chisq<- renderPrint({
     chisq.test(plate_idexx()$Plate, plate_idexx()$IDEXX)
   })
-  
-  # Total E.coli Plot
+    # Total E.coli Plot
   output$tec<- renderPlot({
     ggplot(plate_idexx(), aes(y = correction_flo_tc, x = without_ab_conc))+
       geom_point(aes(color = sites))+
@@ -234,7 +259,7 @@ server<- function(input, output){
     summary(m1)
   })
   
-  # Tab3 Site Comparison
+  # Concentration by Site Tab
   output$flo<- renderPlot({
     df_flo<- fib() %>% 
       group_by(sites) %>% 
