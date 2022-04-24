@@ -42,4 +42,4 @@ saveRDS(coords, "coordinates.rda")
 leaflet(coords) %>% 
   addProviderTiles("CartoDB.Positron") %>% 
   addMarkers(lng = ~Long, lat = ~Lat, label = ~Sites, icon = list(iconUrl = 'https://icons.iconarchive.com/icons/icons8/ios7/512/Travel-Beach-icon.png',iconSize = c(24, 24)))
-1+1
+1
