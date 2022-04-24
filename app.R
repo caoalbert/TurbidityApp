@@ -29,7 +29,7 @@ ui<- dashboardPage(
                 menuItem("Clutering Analysis", tabName = "clustering"),
                 menuItem("ANOVA", tabName = "anova"),
                 menuItem("IDEXX vs. Plate", tabName = "ecoli"),
-                menuItem("Coliform by Site", tabName = "bySite"))),
+                menuItem("E.coli Concentration by Site", tabName = "bySite"))),
   dashboardBody(
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")),
     tabItems(
@@ -84,10 +84,10 @@ ui<- dashboardPage(
                                 tabPanel("Total E.coli", 
                                          plotOutput("tec"),
                                          verbatimTextOutput("teclm"))))))),
-      tabItem(tabName = "bySite", h2("Comparing Coliform Concentration by Sites"),
+      tabItem(tabName = "bySite", h2("Comparing E.coli Concentration by Sites"),
               fluidPage(
-                mainPanel(plotOutput("flo"),
-                          plotOutput("yel"))))
+                mainPanel(plotlyOutput("flo"),
+                          plotlyOutput("yel"))))
     )
   )
 )
@@ -260,40 +260,20 @@ server<- function(input, output){
   })
   
   # Concentration by Site Tab
-  output$flo<- renderPlot({
-    df_flo<- fib() %>% 
-      group_by(sites) %>% 
-      summarise(mean_tcesbl = mean(correction_flo_tc_esbl),
-                mean_flotc = mean(correction_flo_tc))
-    a<- as.data.frame(cbind(df_flo$sites, df_flo$mean_flotc, rep("Flo_TC", nrow(df_flo))))
-    b<- as.data.frame(cbind(df_flo$sites, df_flo$mean_tcesbl, rep("Flo_TC_ESBL", nrow(df_flo))))
-    df_flo2<- rbind(a,b)
-    colnames(df_flo2)<- c("Sites", "Coliform", "Type")
-    df_flo2<- df_flo2 %>%
-      mutate(Coliform = as.numeric(Coliform))
-    ggplot(df_flo2, aes(fill = Type, y = Coliform, x = Sites))+
-      geom_bar(position = "stack", stat = "identity")+
+  output$flo<- renderPlotly({
+    ggplot(plate_idexx(), aes(y = percent_resistant, x = sites))+
+      geom_boxplot()+
       theme_bw()+
-      ggtitle("Mean E.coli Concentration by Sites")+
+      labs(title = "Percent Antibiotic Resistant E.coli by Site")+
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
   })
-  output$yel<- renderPlot({
-    df_yel<- fib() %>% 
-      group_by(sites) %>% 
-      summarise(mean_yel_tcesbl = mean(correction_yel_tc_esbl),
-                mean_yel_tc = mean(correction_yel_tc))
-    a<- as.data.frame(cbind(df_yel$sites, df_yel$mean_yel_tc, rep("yel_TC", nrow(df_yel))))
-    b<- as.data.frame(cbind(df_yel$sites, df_yel$mean_yel_tcesbl, rep("yel_TC_ESBL", nrow(df_yel))))
-    df_yel2<- rbind(a,b)
-    colnames(df_yel2)<- c("Sites", "Coliform", "Type")
-    df_yel2<- df_yel2 %>%
-      mutate(Coliform = as.numeric(Coliform))
-    ggplot(df_yel2, aes(fill = Type, y = Coliform, x = Sites))+
-      geom_bar(position = "stack", stat = "identity")+
+  output$yel<- renderPlotly({
+    ggplot(plate_idexx(), aes(y = without_ab_conc, x = sites))+
+      geom_boxplot()+
       theme_bw()+
-      ggtitle("Mean Coliform Concentration by Sites")+
+      ggtitle("E.coli Concentration by Site")+
       theme(plot.title = element_text(hjust = 0.5, size = 16),
             legend.title = element_text(size = 14),
             axis.title = element_text(size = 14))
