@@ -5,6 +5,7 @@ loadTurbidity<- function(){
   hydro<- cbind(hydro_list[1:3],
                 as.data.frame(lapply(hydro_list[4:length(hydro_list)], as.numeric)))
   tss<- tss %>%
+    mutate(tss_g_l = as.numeric(unlist(tss_g_l))) %>%
     group_by(date_sample, sites)%>%
     summarise(tss = mean(tss_g_l, na.rm = T))
   hydro %>%
@@ -16,11 +17,11 @@ vars<- c("hydrolab_turbidity_ntu",
          "sentinel_acolite_turbidity_mean_fnu",
          "sentinel_gee_turbidity_mean_ntu",
          "landsat_acolite_turbidity_mean_fnu",
-         "tss", 
+         "tss_g_l", 
          "on_site_probe_turbidity",
          "in_lab_probe_turbidity",
          "phosphrous",
-         "nitrite",
+         "nitrate",
          "ammonia",
          "on_site_pH",
          "in_lab_probe_pH",

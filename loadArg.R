@@ -20,10 +20,10 @@ loadArg<- function(){
   
   arg_all<- with_ab %>% 
     left_join(without_ab, c("sites", "date_sample")) %>%
-    mutate(percent_resistant = with_ab_conc/(without_ab_conc+without_ab_conc)) %>%
+    mutate(percent_resistant = with_ab_conc/(without_ab_conc+without_ab_conc)*100) %>%
     select(sites, date_sample, percent_resistant, without_ab_conc, with_ab_conc) %>%
     mutate(cat_antibiotics = case_when(percent_resistant == 0 ~ "0",
-                                       percent_resistant > 0 & percent_resistant < 0.2 ~ "0<Per<20",
-                                       percent_resistant > 0.2 ~ ">20")) 
+                                       percent_resistant > 0 & percent_resistant < 20 ~ "0<Per<20",
+                                       percent_resistant > 20 ~ ">20")) 
   arg_all
 }

@@ -209,7 +209,7 @@ server<- function(input, output){
                     plate_method_abrp_cat[plate_method_abrp == 0]<- "zero"
                     plate_method_abrp_cat[plate_method_abrp > 0]<- "non-zero"})
     #plate_method_abrp_cat ignored because not enough sample
-    m1<- aov(on_site_probe_turbidity ~ phosphrous_cat+as.factor(nitrite)+ammonia_cat+plate_method_tc_cat, data = df_cat)
+    m1<- aov(on_site_probe_turbidity ~ phosphrous_cat+as.factor(nitrate)+ammonia_cat+plate_method_tc_cat, data = df_cat)
     summary(m1)
   })
   
