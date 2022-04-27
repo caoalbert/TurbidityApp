@@ -116,7 +116,7 @@ server<- function(input, output){
              percent_resistant,
              without_ab_conc) %>%
       rename(plate_method_abrp = percent_resistant,
-             plate_method_tc = without_ab_conc)
+             plate_method_ec = without_ab_conc)
     loadTurbidity() %>% 
       left_join(to_join, c("sites", "date_sample"))
   })
@@ -203,8 +203,8 @@ server<- function(input, output){
                     phosphrous_cat[phosphrous <= 0.2]<- "low"
                     phosphrous_cat[phosphrous > 0.2]<- "high"
                     plate_method_tc_cat<- NA
-                    plate_method_tc_cat[plate_method_tc <= 100]<- "low"
-                    plate_method_tc_cat[plate_method_tc > 100]<- "high"
+                    plate_method_tc_cat[plate_method_ec <= 100]<- "low"
+                    plate_method_tc_cat[plate_method_ec > 100]<- "high"
                     plate_method_abrp_cat<- NA
                     plate_method_abrp_cat[plate_method_abrp == 0]<- "zero"
                     plate_method_abrp_cat[plate_method_abrp > 0]<- "non-zero"})

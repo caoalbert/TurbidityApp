@@ -4,10 +4,11 @@ loadFib<- function(){
     select(sites, date_sample, test, correction_yel, correction_flo) %>%
     mutate(correction_yel = as.character(unlist(correction_yel)),
            correction_flo = as.character(unlist(correction_flo))) %>%
+    mutate(correction_flo = ifelse(correction_flo == "<10", 0, correction_flo)) %>%
     mutate(correction_yel = gsub("<","",correction_yel),
            correction_flo = gsub("<", "", correction_flo)) %>%
-    mutate(correction_yel = ifelse(correction_yel == "NA", 0, as.numeric(correction_yel)),
-           correction_flo = ifelse(correction_flo == "NA", 0, as.numeric(correction_flo)))
+    mutate(correction_yel = ifelse(correction_yel == "NA", NA, as.numeric(correction_yel)),
+           correction_flo = ifelse(correction_flo == "NA", NA, as.numeric(correction_flo)))
   tc<- fibCleaned %>%
     filter(test == "TC") %>%
     rename(correction_flo_tc = correction_flo,
