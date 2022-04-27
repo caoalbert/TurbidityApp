@@ -235,7 +235,7 @@ server<- function(input, output){
   output$conti<- renderTable({
     a<- cross_cases(plate_idexx(), Plate, IDEXX)
     a<- a %>%
-      mutate_at(colnames(a)[2:3], as.integer)
+      mutate_at(colnames(a)[2:4], as.integer)
     a[1:3,]
   })
   output$chisq<- renderPrint({

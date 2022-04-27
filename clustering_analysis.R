@@ -31,7 +31,7 @@ df_cluster_analysis<- cbind(df_cluster_analysis, kmeans_m1$cluster) %>%
 lm_largest_cluster<- lm(df_cluster_analysis, formula = sentinel_acolite_turbidity_mean_fnu~on_site_probe_turbidity)
 
 # Visualize the regression
-plot_largest_cluster_regression<- ggplot(lm_largest_cluster, aes(x = sentinel_acolite_turbidity_mean_fnu, y = on_site_probe_turbidity))+
+plot_largest_cluster_regression<- ggplot(lm_largest_cluster, aes(x = on_site_probe_turbidity, y = sentinel_acolite_turbidity_mean_fnu))+
   geom_point()+
   theme_bw()+
   ggtitle("Regression in the Largest Cluster")+
