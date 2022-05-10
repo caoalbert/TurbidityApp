@@ -15,7 +15,7 @@ df_cluster_analysis<- loadTurbidity() %>%
 plot_select_k<- fviz_nbclust(df_cluster_analysis, kmeans, method = "wss")
 
 # Build clustering model
-kmeans_m1<- kmeans(df_cluster_analysis, 3, 25)
+kmeans_m1<- kmeans(df_cluster_analysis, 4, 25)
 
 # Visualize the clsuter
 plot_clusters<- fviz_cluster(kmeans_m1, df_cluster_analysis)+
