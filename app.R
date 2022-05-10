@@ -1,5 +1,4 @@
 # Import the packages
-library(tidyverse)
 library(googlesheets4)
 library(shiny)
 library(shinydashboard)
@@ -8,6 +7,7 @@ library(expss)
 library(plotly)
 library(factoextra)
 library(leaflet)
+library(tidyverse)
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
@@ -115,7 +115,7 @@ server<- function(input, output){
              date_sample,
              percent_resistant,
              without_ab_conc) %>%
-      rename(plate_method_abrp = percent_resistant,
+      dplyr::rename(plate_method_abrp = percent_resistant,
              plate_method_ec = without_ab_conc)
     loadTurbidity() %>% 
       left_join(to_join, c("sites", "date_sample"))

@@ -24,8 +24,8 @@ plot_clusters<- fviz_cluster(kmeans_m1, df_cluster_analysis)+
 
 # Prepare the data for regression
 df_cluster_analysis<- cbind(df_cluster_analysis, kmeans_m1$cluster) %>%
-  rename("cluster" = `kmeans_m1$cluster`) %>%
-  dplyr::filter(cluster == 3)
+  dplyr::rename("cluster" = `kmeans_m1$cluster`) %>%
+  dplyr::filter(cluster == 4 | cluster == 2)
 
 # Regression against the largest cluster
 lm_largest_cluster<- lm(df_cluster_analysis, formula = sentinel_acolite_turbidity_mean_fnu~on_site_probe_turbidity)
