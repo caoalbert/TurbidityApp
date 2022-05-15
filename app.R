@@ -1,5 +1,4 @@
-# Import the packages
-library(tidyverse)
+# Load Dependencies
 library(googlesheets4)
 library(shiny)
 library(shinydashboard)
@@ -8,12 +7,12 @@ library(expss)
 library(plotly)
 library(factoextra)
 library(leaflet)
-filter<- dplyr::filter
-source("loadFib.R")
-source("loadTurbidity.R")
-source("loadArg.R")
-source("clustering_analysis.R")
-load("coords.RData")
+library(tidyverse)
+source("misc/loadFib.R")
+source("misc/loadTurbidity.R")
+source("misc/loadArg.R")
+source("misc/clustering_analysis.R")
+load("misc/coords.RData")
 
 
 
