@@ -8,3 +8,4 @@ TurbidityApp.Rproj
 /experiment.R
 *.rda
 *.rmd
+*.DS_Store
