@@ -1,4 +1,5 @@
 # Import the packages
+library(tidyverse)
 library(googlesheets4)
 library(shiny)
 library(shinydashboard)
@@ -7,18 +8,14 @@ library(expss)
 library(plotly)
 library(factoextra)
 library(leaflet)
-library(tidyverse)
+filter<- dplyr::filter
 source("loadFib.R")
 source("loadTurbidity.R")
 source("loadArg.R")
 source("clustering_analysis.R")
 load("coords.RData")
 
-# Access Google token
-options(
-  gargle_oauth_cache = ".secrets",
-  gargle_oauth_email = TRUE
-)
+
 
 # Name Plotting Variables
 ui<- dashboardPage( 
