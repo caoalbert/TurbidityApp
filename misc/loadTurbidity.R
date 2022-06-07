@@ -32,7 +32,11 @@ vars<- c("hydrolab_turbidity_ntu",
          "hydrolab_dissolved_oxygen_percent",
          "light_absorbance_645",
          "plate_method_abrp",
-         "plate_method_ec")
+         "plate_method_ec",
+         "idexx_method_ec",
+         "idexx_method_abrp",
+         "correction_flo_ent",
+         "correction_yel_tc")
 
 
 

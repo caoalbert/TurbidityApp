@@ -112,10 +112,12 @@ server<- function(input, output){
              percent_resistant,
              without_ab_conc,
              correction_flo_tc,
-             percent_ecoli_resistant) %>%
+             percent_ecoli_resistant,
+             correction_flo_ent,
+             correction_yel_tc) %>%
       dplyr::rename(plate_method_abrp = percent_resistant,
              plate_method_ec = without_ab_conc,
-             dexx_method_ec = correction_flo_tc,
+             idexx_method_ec = correction_flo_tc,
              idexx_method_abrp = percent_ecoli_resistant)
     loadTurbidity() %>% 
       left_join(to_join, c("sites", "date_sample"))

@@ -18,12 +18,19 @@ loadFib<- function(){
     filter(test == "TC_ESBL") %>%
     rename(correction_flo_tc_esbl = correction_flo,
            correction_yel_tc_esbl = correction_yel)
+  
+  tc_ent<- fibCleaned %>% 
+    filter(test == "ENT") %>%
+    rename(correction_flo_ent = correction_flo)
+  
   percent<- tc %>% 
     left_join(tc_esbl,  c("sites", "date_sample")) %>%
+    left_join(tc_ent, c("sites", "date_sample")) %>%
     mutate(percent_ecoli_resistant = correction_flo_tc_esbl/correction_flo_tc*100) %>% 
     mutate(percent_ecoli_resistant = ifelse(is.nan(percent_ecoli_resistant), 0, percent_ecoli_resistant)) %>%
     select(sites, date_sample, percent_ecoli_resistant, correction_flo_tc, 
-           correction_flo_tc_esbl, correction_yel_tc, correction_yel_tc_esbl) %>%
+           correction_flo_tc_esbl, correction_yel_tc, correction_yel_tc_esbl,
+           correction_flo_ent) %>%
     mutate(cat_ecoli_resistant = case_when(percent_ecoli_resistant == 0 ~ "0",
                                        percent_ecoli_resistant > 0 & percent_ecoli_resistant < 20 ~ "0<Per<20",
                                        percent_ecoli_resistant > 20 ~ ">20")) %>%
