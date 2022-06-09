@@ -39,6 +39,7 @@ ui<- dashboardPage(
                                       actionButton("refreshEcoli", "Reload E.coli - IDEXX"),
                                       actionButton("refresharg", "Reload E.coli - Plate"),
                                       actionButton("refresh", "Reload Turbidty & TSS"),
+                                      h6("*Please press the three reload buttons in the sequence of IDEXX - Plate - Turbidity&TSS to populate the app"),
                                       checkboxInput("noLev", "Remove Outliers", FALSE),
                                       width = 10)),
                   
@@ -84,9 +85,9 @@ ui<- dashboardPage(
               fluidPage(
                 mainPanel(leafletOutput("sitemap", width = 600, height = 400),
                           br(),
-                          plotlyOutput("flo"),
+                          plotOutput("flo"),
                           br(),
-                          plotlyOutput("yel"))))
+                          plotOutput("yel"))))
     )
   )
 )
@@ -262,7 +263,7 @@ server<- function(input, output){
   })
   
   # Concentration by Site Tab
-  output$flo<- renderPlotly({
+  output$flo<- renderPlot({
     ggplot(plate_idexx(), aes(y = percent_resistant, x = sites))+
       geom_boxplot()+
       theme_bw()+
@@ -270,9 +271,13 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 12),
             legend.title = element_text(size = 10),
             axis.title = element_text(size = 10),
-            legend.position = "none")
+            legend.position = "none")+
+      geom_text(data = plate_idexx() %>% 
+                  group_by(sites) %>%
+                  tally(),
+                aes(sites, Inf, label = paste0("n = ", n), vjust = 2))
   })
-  output$yel<- renderPlotly({
+  output$yel<- renderPlot({
     ggplot(plate_idexx(), aes(y = without_ab_conc, x = sites))+
       geom_boxplot()+
       theme_bw()+
@@ -280,7 +285,11 @@ server<- function(input, output){
       theme(plot.title = element_text(hjust = 0.5, size = 12),
             legend.title = element_text(size = 10),
             axis.title = element_text(size = 10),
-            legend.position = "none")
+            legend.position = "none")+
+      geom_text(data = plate_idexx() %>% 
+                  group_by(sites) %>%
+                  tally(),
+                aes(sites, Inf, label = paste0("n = ", n), vjust = 2))
   })
   output$sitemap<- renderLeaflet({
     leaflet(coords) %>% 
